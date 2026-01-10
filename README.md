@@ -11,59 +11,88 @@ The **Adaptive Weighted Local Fitting (AWLF)** denoiser is a hybrid algorithm de
 
 This approach performs exceptionally well even under **extreme noise conditions (up to 80% density)**, maintaining structural integrity where traditional methods fail.
 
-##Algorithm Logic
-AWLF (Adaptive Weighted Local Fitting) targets salt-and-pepper (impulse) noise. The pipeline restores only pixels marked as noisy by a binary mask, and decides per-pixel whether to trust a polynomial fit (detail-preserving) or median estimate (robust).
+## Algorithm Logic
 
-Inputs / Outputs
-Input: grayscale image I in [0, 255]
-Input: noise mask M where M[x, y] = 1 means “isy pixel”
-Output: restored image R
-1) Local feature map (computed once per image)
+AWLF (Adaptive Weighted Local Fitting) targets **salt-and-pepper (impulse) noise**. The pipeline restores only pixels marked as noisy by a binary mask, and decides per-pixel whether to trust a **polynomial fit** (detail-preserving) or a **median estimate** (robust).
+
+### Inputs / Outputs
+- Input: grayscale image `I` in `[0, 255]`
+- Input: noise mask `M` where `M[x, y] = 1` means a **noisy** pixel
+- Output: restored image `R`
+
+### 1) Local Feature Map (computed once per image)
 We compute lightweight local features used to derive an adaptive restoration weight:
 
-Local mean via 3x3 box blur.
-Local contrast via local std (from blurred I^2 - mean^2).
-“Intensity score” = sigmoid(z-score) where z-score is (I - local_mean) / local_std.
-This is a statistical normalization, not physical temperature.
-Edge strength = normalized Sobel gradient magnitude.
-High-intensity mask = pixels above the image 85th percentile.
-Local consistency = 1 - std(neighborhood(intensity_score)).
-2) Adaptive weight per noisy pixel
-For each noisy pixel (x, y), compute a scalar w that controls how strongly the algorithm trusts fitting:
+- Local mean via `3x3` box blur.
+- Local contrast via local standard deviation (from blurred `I^2 - mean^2`).
+- **Intensity score** = `sigmoid(z-score)`, where `z-score = (I - local_mean) / local_std`.
+  - This is **statistical normalization**, not physical temperature.
+- Edge strength = normalized Sobel gradient magnitude.
+- High-intensity mask = pixels above the image 85th percentile.
+- Local consistency = `1 - std(neighborhood(intensity_score))`.
 
-Base weight increases with the intensity score.
-Bright-region boost: if high-intensity mask is true, increase weight.
-Edge suppression: if edge strength is high, reduce weight (be conservative on edges).
-Consistency factor: more stable neighborhoods increase weight.
-Final w is clamped to a safe range (e.g., [0.01, 20.0]).
+### 2) Adaptive Weight per Noisy Pixel
+For each noisy pixel `(x, y)`, compute a scalar `w` that controls how strongly the algorithm trusts fitting:
+
+- Base weight increases with the intensity score.
+- Bright-region boost: if the high-intensity mask is true, increase weight.
+- Edge suppression: if edge strength is high, reduce weight (be conservative on edges).
+- Consistency factor: more stable neighborhoods increase weight.
+- Final `w` is clamped to a safe range (e.g., `[0.01, 20.0]`).
+
 Interpretation:
+- Larger `w` → trust polynomial fitting more.
+- Smaller `w` → trust median more.
 
-Larger w → trust polynomial fitting more.
-Smaller w → trust median more.
-3) Collect valid neighbors (ignore noisy pixelsFor each noisy pixel, search window sizes in {3, 5, 7}:
-Gather neighbor values where mask == 0 (non-noisy).
-Stop early when the number of valid pixels reaches min_valid_pixels (default 5).
-If not enough valid pixels are found in all windows, fall back to a small-window median.
-4) Robust local fitting + median blending (core restoration)
-Given valid neighbor values V:
+### 3) Collect Valid Neighbors (ignore noisy pixels)
+For each noisy pixel, search window sizes in `{3, 5, 7}`:
+- Gather neighbor values where `mask == 0` (non-noisy).
+- Stop early when the number of valid pixels reaches `min_valid_pixels` (default: `5`).
+- If not enough valid pixels are found in all windows, fall back to a small-window median.
 
-Sort V and optionally trim extremes (trim ratio decreases as w increases).
-Choose fit complexity:
-If few samples: use linear fit
-If enough samples: use cubic fit
-Compute:
-neighbor_median = median(V)
-fit_median = median(fitted_values) (after polynomial fitting)
-Decision rule (this is the original core logic and is intentionally kept):
+### 4) Robust Local Fitting + Median Blending (core restoration)
+Given valid neighbor values `V`:
 
-If w > 8.0: use fit_median
-Else if w < 0.3: use neighbor_median
-Else: linearly fit_median and neighbor_median with alpha = (w - 0.3) / 7.7
-Finally clamp the restored value to [0, 255].
-Practical notes
-The method is designed for impulse noise; it is not intended for Gaussian noise.
-Performance depends on noise-mask quality: missed noisy pixels remain corrupted; false positives blur clean details.
-Runtime is dominated by per-noisy-pixel neighborhood search and local fitting; high noise density increases compute time.
+- Sort `V` and optionally trim extremes (the trim ratio decreases as `w` increases).
+- Choose fit complexity:
+  - If few samples: use **linear fit**
+  - If enough samples: use **cubic fit**
+- Compute:
+  - `neighbor_median = median(V)`
+  - `fit_median = median(fitted_values)` (after polynomial fitting)
+
+Decision rule (kept exactly as in the original implementation):
+- If `w > 8.0`: use `fit_median`
+- Else if `w < 0.3`: use `neighbor_median`
+- Else: linearly blend `fit_median` and `neighbor_median` with `alpha = (w - 0.3) / 7.7`
+
+Finally clamp the restored value to `[0, 255]`.
+
+### High-level Pseudocode
+```text
+features = compute_features(I)
+
+for each (x, y) where M[x, y] == 1:
+    w = compute_weight(features, x, y)
+
+    V = collect_valid_neighbors(I, M, x, y, windows=[3,5,7], min_valid=5)
+    if V is empty:
+        R[x, y] = median(neighborhood(I, x, y, 3))
+        continue
+
+    neighbor_median = median(V)
+    fit_median = median(polyfit_values(V, w))
+
+    if w > 8.0:
+        R[x, y] = fit_median
+    else if w < 0.3:
+        R[x, y] = neighbor_median
+    else:
+        alpha = (w - 0.3) / 7.7
+        R[x, y] = alpha * fit_median + (1 - alpha) * neighbor_median
+
+    R[x, y] = clamp(R[x, y], 0, 255)
+
 ## 🚀 Key Features
 
 *   **Hybrid Restoration Strategy**: Seamlessly blends polynomial fitting (for edges/details) and median filtering (for smooth regions).
