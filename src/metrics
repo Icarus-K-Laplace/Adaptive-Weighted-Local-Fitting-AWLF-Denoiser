@@ -1,0 +1,23 @@
+import numpy as np
+import cv2
+from skimage.metrics import structural_similarity as ssim
+
+def calculate_psnr(orig, restored):
+    mse = np.mean((orig - restored) ** 2)
+    if mse == 0: return 100
+    return 10 * np.log10(255**2 / mse)
+
+def calculate_fsim(orig, restored):
+    """Approximate Feature Similarity using Gradient Correlation."""
+    g1 = cv2.Sobel(orig.astype(float), cv2.CV_32F, 1, 1)
+    g2 = cv2.Sobel(restored.astype(float), cv2.CV_32F, 1, 1)
+    
+    # Gradient magnitude correlation
+    corr = np.corrcoef(g1.flatten(), g2.flatten())[0, 1]
+    return (corr + 1) / 2 * 100
+
+def get_all_metrics(orig, restored):
+    p = calculate_psnr(orig, restored)
+    s = ssim(orig, restored, data_range=255)
+    f = calculate_fsim(orig, restored)
+    return p, s, f
