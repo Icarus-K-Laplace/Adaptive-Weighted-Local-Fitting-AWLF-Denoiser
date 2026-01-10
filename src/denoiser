@@ -1,0 +1,179 @@
+🐍 src/denoiser.py (核心算法)
+```python
+import numpy as np
+import cv2
+from .utils import get_neighborhood
+
+class AdaptiveWeightedLSQ:
+    """
+    Adaptive Weighted Least Squares Denoiser.
+    
+    Combines polynomial fitting with median filtering based on local image statistics.
+    """
+    
+    def __init__(self):
+        self._feature_cache = {}
+        
+    def compute_local_features(self, img):
+        """
+        Compute local image features for weight calculation.
+        
+        Features:
+        - Normalized Intensity (Sigmoid of Z-Score)
+        - High Intensity Mask (Top 15% pixels)
+        - Edge Strength (Normalized Gradient)
+        """
+        img_float = img.astype(np.float32)
+        
+        # Local statistics
+        local_mean = cv2.blur(img_float, (3, 3))
+        
+        # Sobel Gradient
+        sobel_x = cv2.Sobel(img_float, cv2.CV_32F, 1, 0, ksize=3)
+        sobel_y = cv2.Sobel(img_float, cv2.CV_32F, 0, 1, ksize=3)
+        gradient = np.sqrt(sobel_x**2 + sobel_y**2)
+        
+        # Local Standard Deviation
+        local_contrast = cv2.blur(img_float**2, (3, 3)) - local_mean**2
+        local_std = np.sqrt(np.maximum(local_contrast, 0))
+        local_std[local_std < 1e-6] = 1e-6
+        
+        # Normalized Intensity (Sigmoid)
+        z_score = (img_float - local_mean) / local_std
+        normalized_intensity = 1 / (1 + np.exp(-z_score))
+        
+        # Feature Masks
+        high_intensity_mask = (img_float > np.percentile(img_float, 85)).astype(np.float32)
+        edge_strength = gradient / (gradient.max() + 1e-6)
+        
+        return {
+            'intensity_score': normalized_intensity,
+            'high_intensity_mask': high_intensity_mask,
+            'edge_strength': edge_strength,
+            'local_mean': local_mean
+        }
+    
+    def calculate_weight(self, features, x, y):
+        """
+        Calculate restoration weight.
+        High weight = Favor Polynomial Fit.
+        Low weight = Favor Median Filter.
+        """
+        intensity = features['intensity_score'][x, y]
+        is_high_int = features['high_intensity_mask'][x, y]
+        is_edge = features['edge_strength'][x, y]
+        
+        # 1. Base weight from intensity
+        base_weight = 0.1 + 9.9 * intensity
+        
+        # 2. Boost for high intensity regions (preserve bright details)
+        int_factor = 2.0 if is_high_int > 0.8 else 1.0
+        
+        # 3. Suppress for edge regions (be conservative on edges)
+        edge_factor = 0.3 if is_edge > 0.3 else 1.0
+        
+        # 4. Consistency check
+        local_int_neighbors = get_neighborhood(features['intensity_score'], x, y, 3)
+        consistency = 1.0 - np.std(local_int_neighbors)
+        consistency_factor = 0.5 + 0.5 * consistency
+        
+        final_weight = base_weight * int_factor * edge_factor * consistency_factor
+        return np.clip(final_weight, 0.01, 20.0)
+    
+    def adaptive_poly_fit(self, valid_pixels, weight):
+        """
+        Core Restoration Logic:
+        Fit polynomial to valid neighbors and blend with median based on weight.
+        """
+        try:
+            valid_sorted = np.sort(valid_pixels)
+            n = len(valid_sorted)
+            
+            # Not enough data -> Median
+            if n < 6: return np.median(valid_pixels)
+            
+            # Adaptive Trimming
+            trim_ratio = max(0.05, 0.2 - weight * 0.01)
+            trim_len = int(n * trim_ratio)
+            
+            if trim_len > 0 and n > trim_len * 2:
+                valid_trimmed = valid_sorted[trim_len:-trim_len]
+            else:
+                valid_trimmed = valid_sorted
+            
+            n_trimmed = len(valid_trimmed)
+            if n_trimmed < 4: return np.median(valid_pixels)
+            
+            # Polynomial Fitting
+            x_fit = np.arange(n_trimmed)
+            # Linear for small samples, Cubic for large
+            degree = 1 if n_trimmed < 10 else 3
+            coeffs = np.polyfit(x_fit, valid_trimmed, degree)
+            fit_values = np.polyval(coeffs, x_fit)
+            
+            # === HYBRID SELECTION LOGIC (PRESERVED) ===
+            neighbor_median = np.median(valid_pixels)
+            
+            if weight > 8.0:
+                restored_val = np.median(fit_values)
+            elif weight < 0.3:
+                restored_val = neighbor_median
+            else:
+                fit_median = np.median(fit_values)
+                alpha = (weight - 0.3) / 7.7
+                restored_val = alpha * fit_median + (1 - alpha) * neighbor_median
+            # ==========================================
+            
+            return np.clip(restored_val, 0, 255)
+            
+        except:
+            return np.median(valid_pixels)
+    
+    def denoise(self, noisy_img, noise_mask, min_valid_pixels=5):
+        """Main denoising loop."""
+        h, w = noisy_img.shape
+        denoised_img = noisy_img.astype(np.float32, copy=True)
+        
+        # Compute Features
+        cache_key = hash(noisy_img.tobytes())
+        if cache_key not in self._feature_cache:
+            self._feature_cache[cache_key] = self.compute_local_features(noisy_img)
+        features = self._feature_cache[cache_key]
+        
+        noise_coords = np.argwhere(noise_mask == 1)
+        total_noise = len(noise_coords)
+        print(f"Processing {total_noise} noise pixels...")
+        
+        # Pre-compute weights
+        weights = np.zeros(total_noise)
+        for i, (x, y) in enumerate(noise_coords):
+            weights[i] = self.calculate_weight(features, x, y)
+            
+        # Batch processing
+        batch_size = 5000
+        for start in range(0, total_noise, batch_size):
+            end = min(start + batch_size, total_noise)
+            coords_batch = noise_coords[start:end]
+            weights_batch = weights[start:end]
+            
+            for (x, y), w_val in zip(coords_batch, weights_batch):
+                valid_pixels = None
+                # Search expanding window for valid pixels
+                for k in [3, 5, 7]:
+                    nb = get_neighborhood(denoised_img, x, y, k)
+                    mask_nb = get_neighborhood(noise_mask, x, y, k)
+                    valid = nb[mask_nb == 0]
+                    if len(valid) >= min_valid_pixels:
+                        valid_pixels = valid
+                        break
+                
+                if valid_pixels is None:
+                    # Fallback
+                    denoised_img[x, y] = np.median(get_neighborhood(denoised_img, x, y, 3))
+                else:
+                    denoised_img[x, y] = self.adaptive_poly_fit(valid_pixels, w_val)
+                    
+            if end % 20000 == 0:
+                print(f"Progress: {end}/{total_noise} ({end/total_noise:.1%})")
+                
+        return denoised_img.astype(np.uint8)
