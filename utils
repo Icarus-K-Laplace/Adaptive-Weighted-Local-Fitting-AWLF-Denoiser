@@ -1,0 +1,46 @@
+import numpy as np
+import cv2
+
+def get_neighborhood(img, x, y, size=3):
+    """Get pixel neighborhood safely."""
+    h, w = img.shape
+    half = size // 2
+    x_min, x_max = max(0, x - half), min(h, x + half + 1)
+    y_min, y_max = max(0, y - half), min(w, y + half + 1)
+    return img[x_min:x_max, y_min:y_max].flatten()
+
+def add_salt_pepper_noise(image, density=0.1, seed=None):
+    """Add salt and pepper noise."""
+    if seed: np.random.seed(seed)
+    noisy = image.copy()
+    h, w = image.shape
+    
+    num_noise = int(h * w * density)
+    coords = np.random.permutation(h * w)[:num_noise]
+    rows, cols = coords // w, coords % w
+    
+    half = num_noise // 2
+    # Salt (255)
+    noisy[rows[:half], cols[:half]] = 255
+    # Pepper (0)
+    noisy[rows[half:], cols[half:]] = 0
+    
+    # Return noisy image and mask (1=noise)
+    mask = np.zeros((h, w), dtype=np.uint8)
+    mask[rows, cols] = 1
+    return noisy, mask
+
+def noise_detection(image, threshold=20):
+    """
+    Detect noise based on difference from median.
+    """
+    median = cv2.medianBlur(image, 3)
+    diff = np.abs(image.astype(float) - median.astype(float))
+    
+    # Extreme values check
+    is_extreme = (image < 5) | (image > 250)
+    
+    mask = np.zeros_like(image, dtype=np.uint8)
+    mask[(diff > threshold) & is_extreme] = 1
+    mask[diff > 50] = 1 # Catch very large differences
+    return mask
