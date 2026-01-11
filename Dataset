@@ -1,0 +1,25 @@
+This project evaluates AWLF-Fast on the **Tianjin University open UAV remote-sensing infrared grayscale image dataset**.
+
+## Official Record
+- Dataset ID (CSTR): `CSTR:14804.11.sciencedb.space.00579`
+- URL: https://cstr.cn/14804.11.sciencedb.space.00579
+
+## Usage & License
+- This repository does **not** include or redistribute the dataset.
+- Please download the dataset from the official CSTR page and follow its license/terms and citation requirements.
+
+## Modality
+- Infrared, grayscale (uint8 assumed in `[0, 255]` after loading)
+
+## Preprocessing (Reproducibility)
+To make experiments reproducible, the evaluation pipeline uses:
+- Input type: grayscale `uint8` in `[0, 255]`
+- No resizing by default (native resolution)
+- Synthetic impulse noise for controlled benchmarking:
+  - Salt-and-pepper noise density: `{0.2, 0.4, 0.6}`
+  - Random seed: `42` (fixed)
+
+## Recommended Reporting
+Because AWLF-Fast is non-learning-based (no training required), we recommend reporting:
+- Mean ± std of PSNR/SSIM over a fixed subset of images
+- Runtime on CPU (including image size and hardware details)
