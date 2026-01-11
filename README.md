@@ -89,6 +89,14 @@ Benchmark results on infrared scene data (PSNR/SSIM/FSIM):
 | **80%** | **28.19** | **0.8819** | **99.55** | +20.86 dB / +0.86 SSIM |
 
 *> Note: Tested on `scene1.png`. Processing time for 80% noise approx. 170s on CPU (Standard mode).*
+## Dataset
+
+Experiments are conducted on the **Tianjin University open UAV remote-sensing infrared grayscale image dataset**.
+Please follow the dataset's original license and citation requirements.
+
+- Modality: infrared, grayscale
+- Usage: evaluation and benchmarking only
+- Note: this repository does **not** redistribute the dataset files.
 
 ## 🛠️ Installation
 
