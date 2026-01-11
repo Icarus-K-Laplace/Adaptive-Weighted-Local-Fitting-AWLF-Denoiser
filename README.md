@@ -92,11 +92,22 @@ Benchmark results on infrared scene data (PSNR/SSIM/FSIM):
 ## Dataset
 
 Experiments are conducted on the **Tianjin University open UAV remote-sensing infrared grayscale image dataset**.
-Please follow the dataset's original license and citation requirements.
 
-- Modality: infrared, grayscale
-- Usage: evaluation and benchmarking only
-- Note: this repository does **not** redistribute the dataset files.
+- Dataset ID (CSTR): `CSTR:14804.11.sciencedb.space.00579`
+- Link: https://cstr.cn/14804.11.sciencedb.space.00579
+- Note: This repository does **not** redistribute the dataset files. Please download it from the official source and comply with its license/terms.
+## Citation (Dataset)
+
+If you use the Tianjin University UAV remote-sensing infrared grayscale dataset, please cite its official record:
+
+```bibtex
+@misc{tju_uav_ir_dataset_cstr,
+  title        = {Tianjin University UAV Remote-Sensing Infrared Grayscale Image Dataset},
+  howpublished = {\url{https://cstr.cn/14804.11.sciencedb.space.00579}},
+  note         = {CSTR:14804.11.sciencedb.space.00579},
+  year         = {n.d.}
+}
+
 
 ## 🛠️ Installation
 
