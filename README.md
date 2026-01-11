@@ -68,33 +68,6 @@ Decision rule (kept exactly as in the original implementation):
 
 Finally clamp the restored value to `[0, 255]`.
 
-### High-level Pseudocode
-```text
-features = compute_features(I)
-
-for each (x, y) where M[x, y] == 1:
-    w = compute_weight(features, x, y)
-
-    V = collect_valid_neighbors(I, M, x, y, windows=[3,5,7], min_valid=5)
-    if V is empty:
-        R[x, y] = median(neighborhood(I, x, y, 3))
-        continue
-
-    neighbor_median = median(V)
-    fit_median = median(polyfit_values(V, w))
-
-    if w > 8.0:
-        R[x, y] = fit_median
-    else if w < 0.3:
-        R[x, y] = neighbor_median
-    else:
-        alpha = (w - 0.3) / 7.7
-        R[x, y] = alpha * fit_median + (1 - alpha) * neighbor_median
-
-    R[x, y] = clamp(R[x, y], 0, 255)
-
-
-
 ## 🚀 Key Features
 
 *   **Hybrid Restoration Strategy**: Seamlessly blends polynomial fitting (for edges/details) and median filtering (for smooth regions).
@@ -123,3 +96,27 @@ Benchmark results on infrared scene data (PSNR/SSIM/FSIM):
    ```bash
    git clone https://github.com/yourusername/AWLF-Denoiser.git
    cd AWLF-Denoiser
+### High-level Pseudocode
+```text
+features = compute_features(I)
+
+for each (x, y) where M[x, y] == 1:
+    w = compute_weight(features, x, y)
+
+    V = collect_valid_neighbors(I, M, x, y, windows=[3,5,7], min_valid=5)
+    if V is empty:
+        R[x, y] = median(neighborhood(I, x, y, 3))
+        continue
+
+    neighbor_median = median(V)
+    fit_median = median(polyfit_values(V, w))
+
+    if w > 8.0:
+        R[x, y] = fit_median
+    else if w < 0.3:
+        R[x, y] = neighbor_median
+    else:
+        alpha = (w - 0.3) / 7.7
+        R[x, y] = alpha * fit_median + (1 - alpha) * neighbor_median
+
+    R[x, y] = clamp(R[x, y], 0, 255)
