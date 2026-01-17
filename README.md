@@ -25,67 +25,62 @@ A clean, educational, pure Python implementation of the Adaptive Weighted Local 
 > *   **60+ FPS** real-time processing via Numba JIT & Parallelization.
 > *   **16-bit / RAW** data support for thermal imaging.
 > *   **Memory optimization** for edge devices.
-## Algorithm Logic
+---
 
-AWLF (Adaptive Weighted Local Fitting) targets **salt-and-pepper (impulse) noise**. The pipeline restores only pixels marked as noisy by a binary mask, and decides per-pixel whether to trust a **polynomial fit** (detail-preserving) or a **median estimate** (robust).
+## 🧠 Algorithm Pipeline (Theoretical Framework)
 
-The Adaptive Weighted Local Filter (AWLF) detects impulse noise based on local statistics and restores pixels using a weighted average of neighbor pixels. The weights are calculated based on spatial distance and intensity similarity:
+This reference implementation follows a 4-stage restoration strategy designed to balance detail preservation with robust noise suppression.
 
-$$ \hat{I}(x) = \frac{\sum_{i \in \Omega} w_i I(i)}{\sum_{i \in \Omega} w_i} $$
+### 1. Inputs & Outputs
+*   **Input**: Grayscale image $I \in [0, 255]$
+*   **Input**: Noise mask $M$ (where $M(x,y)=1$ indicates impulse noise)
+*   **Output**: Restored image $\hat{I}$
 
-Where weights $w_i$ adapt dynamically to local structural features.
-### Inputs / Outputs
-- Input: grayscale image `I` in `[0, 255]`
-- Input: noise mask `M` where `M[x, y] = 1` means a **noisy** pixel
-- Output: restored image `R`
+### 2. Core Steps
 
-### 1) Local Feature Map (computed once per image)
-We compute lightweight local features used to derive an adaptive restoration weight:
+#### Step 1: Local Feature Extraction
+We compute lightweight statistical features to guide the restoration process. Unlike physical temperature, we use statistical normalization:
+*   **Local Mean ($\mu$)**: Computed via $3\times3$ box blur.
+*   **Local Contrast ($\sigma$)**: Standard deviation of the neighborhood.
+*   **Intensity Score**: $S = \text{sigmoid}(\frac{I - \mu}{\sigma})$.
+*   **Edge Strength**: Normalized Sobel gradient magnitude.
 
-- Local mean via `3x3` box blur.
-- Local contrast via local standard deviation (from blurred `I^2 - mean^2`).
-- **Intensity score** = `sigmoid(z-score)`, where `z-score = (I - local_mean) / local_std`.
-  - This is **statistical normalization**, not physical temperature.
-- Edge strength = normalized Sobel gradient magnitude.
-- High-intensity mask = pixels above the image 85th percentile.
-- Local consistency = `1 - std(neighborhood(intensity_score))`.
+#### Step 2: Adaptive Weighting
+For each noisy pixel, a scalar weight $w$ is derived to determine the restoration strategy. The weight is dynamically adjusted:
+*   **$w \uparrow$ (Increase)**: In bright regions (high-intensity mask) or statistically consistent neighborhoods.
+*   **$w \downarrow$ (Decrease)**: On strong edges to prevent blurring.
 
-### 2) Adaptive Weight per Noisy Pixel
-For each noisy pixel `(x, y)`, compute a scalar `w` that controls how strongly the algorithm trusts fitting:
+> *Interpretation*: Larger $w$ implies higher confidence in the local structure, favoring polynomial fitting. Smaller $w$ favors conservative median filtering.
 
-- Base weight increases with the intensity score.
-- Bright-region boost: if the high-intensity mask is true, increase weight.
-- Edge suppression: if edge strength is high, reduce weight (be conservative on edges).
-- Consistency factor: more stable neighborhoods increase weight.
-- Final `w` is clamped to a safe range (e.g., `[0.01, 20.0]`).
+#### Step 3: Valid Neighbor Collection
+The algorithm performs an iterative search (Window sizes: $3 \to 5 \to 7$) to gather valid (non-noisy) pixels $V$.
+*   If $|V| < \text{min\_pixels}$, the search expands.
+*   This iterative search ensures robustness even in high-density noise scenarios ($>80\%$).
 
-Interpretation:
-- Larger `w` → trust polynomial fitting more.
-- Smaller `w` → trust median more.
+#### Step 4: Hybrid Restoration (Fitting + Blending)
+The final pixel value is computed using a hybrid approach:
+1.  **Robust Fitting**: Perform Linear or Cubic polynomial fitting on set $V$ to estimate $\hat{I}_{fit}$.
+2.  **Median Filtering**: Compute standard median $\hat{I}_{med} = \text{median}(V)$.
+3.  **Decision Rule**:
+    $$
+    \hat{I}(x,y) = 
+    \begin{cases} 
+    \hat{I}_{fit} & \text{if } w > 8.0 \quad \text{(Trust Structure)} \\
+    \hat{I}_{med} & \text{if } w < 0.3 \quad \text{(Trust Median)} \\
+    \alpha \hat{I}_{fit} + (1-\alpha) \hat{I}_{med} & \text{otherwise} \quad \text{(Linear Blend)}
+    \end{cases}
+    $$
 
-### 3) Collect Valid Neighbors (ignore noisy pixels)
-For each noisy pixel, search window sizes in `{3, 5, 7}`:
-- Gather neighbor values where `mask == 0` (non-noisy).
-- Stop early when the number of valid pixels reaches `min_valid_pixels` (default: `5`).
-- If not enough valid pixels are found in all windows, fall back to a small-window median.
+---
 
-### 4) Robust Local Fitting + Median Blending (core restoration)
-Given valid neighbor values `V`:
+## ⚠️ Complexity Note
 
-- Sort `V` and optionally trim extremes (the trim ratio decreases as `w` increases).
-- Choose fit complexity:
-  - If few samples: use **linear fit**
-  - If enough samples: use **cubic fit**
-- Compute:
-  - `neighbor_median = median(V)`
-  - `fit_median = median(fitted_values)` (after polynomial fitting)
+As seen in the pipeline above, the algorithm involves **pixel-wise polynomial fitting** and **iterative neighborhood search**. 
 
-Decision rule (kept exactly as in the original implementation):
-- If `w > 8.0`: use `fit_median`
-- Else if `w < 0.3`: use `neighbor_median`
-- Else: linearly blend `fit_median` and `neighbor_median` with `alpha = (w - 0.3) / 7.7`
+In this **pure Python reference implementation**, these operations are computationally expensive (~1.5s per frame). 
 
-Finally clamp the restored value to `[0, 255]`.
+👉 **For industrial applications**, our [**AWLF-Fast**](链接) edition uses **SIMD vectorization**, **lookup tables**, and **JIT compilation** to achieve **real-time performance (60+ FPS)** while maintaining the same mathematical rigor.
+
 
 ## 🚀 Key Features
 
