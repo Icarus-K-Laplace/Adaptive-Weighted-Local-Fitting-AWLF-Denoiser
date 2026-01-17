@@ -26,7 +26,7 @@ A clean, educational, pure Python implementation of the Adaptive Weighted Local 
 > *   **16-bit / RAW** data support for thermal imaging.
 > *   **Memory optimization** for edge devices.
 ---
-![Uploading image.png…]()
+
 
 ## 🧠 Algorithm Pipeline (Theoretical Framework)
 
