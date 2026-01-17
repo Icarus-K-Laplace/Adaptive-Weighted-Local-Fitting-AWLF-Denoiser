@@ -29,6 +29,11 @@ A clean, educational, pure Python implementation of the Adaptive Weighted Local 
 
 AWLF (Adaptive Weighted Local Fitting) targets **salt-and-pepper (impulse) noise**. The pipeline restores only pixels marked as noisy by a binary mask, and decides per-pixel whether to trust a **polynomial fit** (detail-preserving) or a **median estimate** (robust).
 
+The Adaptive Weighted Local Filter (AWLF) detects impulse noise based on local statistics and restores pixels using a weighted average of neighbor pixels. The weights are calculated based on spatial distance and intensity similarity:
+
+$$ \hat{I}(x) = \frac{\sum_{i \in \Omega} w_i I(i)}{\sum_{i \in \Omega} w_i} $$
+
+Where weights $w_i$ adapt dynamically to local structural features.
 ### Inputs / Outputs
 - Input: grayscale image `I` in `[0, 255]`
 - Input: noise mask `M` where `M[x, y] = 1` means a **noisy** pixel
