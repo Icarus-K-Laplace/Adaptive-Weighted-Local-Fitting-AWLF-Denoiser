@@ -10,7 +10,21 @@ Adaptive Weighted Local Fitting (AWLF) denoiser for salt-and-pepper noise: combi
 The **Adaptive Weighted Local Fitting (AWLF)** denoiser is a hybrid algorithm designed to restore images corrupted by impulse noise (salt-and-pepper). unlike standard median filters, AWLF preserves fine details and edges by dynamically switching between **polynomial fitting** and **robust statistical estimation** based on local image features.
 
 This approach performs exceptionally well even under **extreme noise conditions (up to 80% density)**, maintaining structural integrity where traditional methods fail.
+A clean, educational, pure Python implementation of the Adaptive Weighted Local Filter algorithm for image restoration. This repository serves as a reference for understanding the underlying mathematics and logic of adaptive filtering.
 
+> **⚠️ Performance Notice**
+>
+> This is a **reference implementation** optimized for readability, NOT for speed.
+> *   **Execution Time**: ~1-3 seconds per frame (512x512) on CPU.
+> *   **Data Support**: 8-bit Grayscale/RGB only.
+>
+> 🚀 **Need Real-time Performance for Industrial Use?**
+>
+> Please check out [**AWLF-Fast**](https://github.com/yourusername/AWLF-Fast) (GPL-3.0).
+> The Fast edition features:
+> *   **60+ FPS** real-time processing via Numba JIT & Parallelization.
+> *   **16-bit / RAW** data support for thermal imaging.
+> *   **Memory optimization** for edge devices.
 ## Algorithm Logic
 
 AWLF (Adaptive Weighted Local Fitting) targets **salt-and-pepper (impulse) noise**. The pipeline restores only pixels marked as noisy by a binary mask, and decides per-pixel whether to trust a **polynomial fit** (detail-preserving) or a **median estimate** (robust).
