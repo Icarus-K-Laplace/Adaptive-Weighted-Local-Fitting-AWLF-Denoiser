@@ -79,7 +79,7 @@ As seen in the pipeline above, the algorithm involves **pixel-wise polynomial fi
 
 In this **pure Python reference implementation**, these operations are computationally expensive (~1.5s per frame). 
 
-👉 **For industrial applications**, our [**AWLF-Fast**](链接) edition uses **SIMD vectorization**, **lookup tables**, and **JIT compilation** to achieve **real-time performance (60+ FPS)** while maintaining the same mathematical rigor.
+👉 **For industrial applications**, my [**AWLF-Fast**](链接) edition uses **SIMD vectorization**, **lookup tables**, and **JIT compilation** to achieve **real-time performance (60+ FPS)** while maintaining the same mathematical rigor.
 
 
 ## 🚀 Key Features
