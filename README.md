@@ -130,12 +130,12 @@ We evaluate AWLF on standard test images under three impulse noise densities: **
 
 | Noise Density | PSNR (dB) ↑ | SSIM ↑ | Time (s) ↓ |
 | :---: | :---: | :---: | :---: |
-| **20%** | 39.94 | 0.9853 | 0.35 |
-| **40%** | 34.99 | 0.9604 | 0.38 |
-| **60%** | 31.25 | 0.9119 | 0.45 |
+| **20%** | 39.94 | 0.9853 | 20.14 |
+| **40%** | 34.99 | 0.9604 | 24.62 |
+| **60%** | 31.25 | 0.9119 | 43.28 |
 
 > *Tested on 512×640 grayscale image. Higher PSNR/SSIM = Better quality. Lower Time = Faster.*
-*> Note: Tested on `scene1.png`. Processing time for 80% noise approx. 170s on CPU (Standard mode).*
+*> Note: Tested on `scene1.png`. Processing time for 80% noise approx. 45s on CPU (Standard mode).*
 ## Dataset
 
 Experiments are conducted on the **Tianjin University open UAV remote-sensing infrared grayscale image dataset**.
