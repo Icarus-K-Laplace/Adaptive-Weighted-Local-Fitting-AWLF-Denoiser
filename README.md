@@ -135,15 +135,6 @@ We evaluate AWLF on standard test images under three impulse noise densities: **
 | **60%** | 31.25 | 0.9119 | 0.45 |
 
 > *Tested on 512×640 grayscale image. Higher PSNR/SSIM = Better quality. Lower Time = Faster.*
-
-Benchmark results on infrared scene data (PSNR/SSIM/FSIM):
-
-| Noise Density | PSNR (dB) | SSIM | FSIM (%) | Improvement (vs Baseline) |
-|:---:|:---:|:---:|:---:|:---:|
-| **20%** | **33.42** | **0.9796** | **99.87** | +20.73 dB / +0.89 SSIM |
-| **40%** | **31.55** | **0.9555** | **99.80** | +21.66 dB / +0.91 SSIM |
-| **80%** | **28.19** | **0.8819** | **99.55** | +20.86 dB / +0.86 SSIM |
-
 *> Note: Tested on `scene1.png`. Processing time for 80% noise approx. 170s on CPU (Standard mode).*
 ## Dataset
 
