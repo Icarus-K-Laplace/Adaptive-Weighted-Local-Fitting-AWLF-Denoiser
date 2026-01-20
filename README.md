@@ -94,6 +94,47 @@ In this **pure Python reference implementation**, these operations are computati
 *   **Detail Preservation**: Minimizes the "blurring" artifact common in standard median filters.
 
 ## 📊 Performance
+## 👁️ Visual Results
+
+We evaluate AWLF on standard test images under three impulse noise densities: **20%**, **40%**, and **60%**.
+
+---
+
+### 1. Full Image Comparison
+
+> **Left to Right**: Original → Noisy → AWLF Restored
+
+#### Noise Density: 20%
+![Compare 20%](visual_AWLF-Adaptive.png)
+
+#### Noise Density: 40%
+![Compare 40%](visual_AWLF-Adaptive_40.png)
+
+#### Noise Density: 60%
+![Compare 60%](visual_AWLF-Adaptive_60.png)
+
+---
+
+### 2. Zoom-in Details (Edge & Texture Preservation)
+
+> **Key Observation**: Unlike standard median filters that blur edges, AWLF preserves sharp transitions using adaptive local fitting.
+
+| 20% Noise | 40% Noise | 60% Noise |
+| :---: | :---: | :---: |
+| ![Zoom 20%](zoom_AWLF-Adaptive.png) | ![Zoom 40%](zoom_AWLF-Adaptive_40.png) | ![Zoom 60%](zoom_AWLF-Adaptive_60.png) |
+| *Clean restoration* | *Structure maintained* | *Artifact-free under extreme noise* |
+
+---
+
+### 3. Quantitative Metrics
+
+| Noise Density | PSNR (dB) ↑ | SSIM ↑ | Time (s) ↓ |
+| :---: | :---: | :---: | :---: |
+| **20%** | 39.94 | 0.9853 | 0.35 |
+| **40%** | 34.99 | 0.9604 | 0.38 |
+| **60%** | 31.25 | 0.9119 | 0.45 |
+
+> *Tested on 512×640 grayscale image. Higher PSNR/SSIM = Better quality. Lower Time = Faster.*
 
 Benchmark results on infrared scene data (PSNR/SSIM/FSIM):
 
