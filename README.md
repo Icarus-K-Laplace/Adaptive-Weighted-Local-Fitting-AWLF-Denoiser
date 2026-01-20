@@ -110,8 +110,8 @@ We evaluate AWLF on standard test images under three impulse noise densities: **
 #### Noise Density: 40%
 ![Compare 40%](visual_AWLF-Adaptive_40.png)
 
-#### Noise Density: 60%
-![Compare 60%](visual_AWLF-Adaptive_60.png)
+#### Noise Density: 80%
+![Compare 60%](visual_AWLF-Adaptive_80.png)
 
 ---
 
@@ -119,9 +119,9 @@ We evaluate AWLF on standard test images under three impulse noise densities: **
 
 > **Key Observation**: Unlike standard median filters that blur edges, AWLF preserves sharp transitions using adaptive local fitting.
 
-| 20% Noise | 40% Noise | 60% Noise |
+| 20% Noise | 40% Noise | 80% Noise |
 | :---: | :---: | :---: |
-| ![Zoom 20%](zoom_AWLF-Adaptive.png) | ![Zoom 40%](zoom_AWLF-Adaptive_40.png) | ![Zoom 60%](zoom_AWLF-Adaptive_60.png) |
+| ![Zoom 20%](zoom_AWLF-Adaptive.png) | ![Zoom 40%](zoom_AWLF-Adaptive_40.png) | ![Zoom 60%](zoom_AWLF-Adaptive_80.png) |
 | *Clean restoration* | *Structure maintained* | *Artifact-free under extreme noise* |
 
 ---
