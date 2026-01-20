@@ -20,7 +20,7 @@ A clean, educational, pure Python implementation of the Adaptive Weighted Local 
 >
 > 🚀 **Need Real-time Performance for Industrial Use?**
 >
-> Please check out [**AWLF-Fast**](https://github.com/yourusername/AWLF-Fast) (GPL-3.0).
+> Please check out [**AWLF-Fast**](https://github.com/Icarus-K-Laplace/AWLF-Fast-Universal) (GPL-3.0).
 > The Fast edition features:
 > *   **60+ FPS** real-time processing via Numba JIT & Parallelization.
 > *   **16-bit / RAW** data support for thermal imaging.
